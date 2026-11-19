@@ -1,0 +1,57 @@
+name: Build compatibility APK
+
+on:
+  push:
+    branches: [kodiak]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install Android SDK
+        run: sdkmanager "platforms;android-37" "build-tools;36.0.0"
+      - name: Build release APK
+        run: |
+          curl --fail --silent --show-error --location --retry 3 \
+            https://services.gradle.org/distributions/gradle-9.8.1-bin.zip -o "$RUNNER_TEMP/gradle.zip"
+          printf '%s  %s\n' 'dce76f55f8e251a3a1f130eb120f30b3d271de2b76c9b0729d316b5a1b6dc01f' "$RUNNER_TEMP/gradle.zip" | sha256sum --check
+          unzip -q "$RUNNER_TEMP/gradle.zip" -d "$RUNNER_TEMP"
+          "$RUNNER_TEMP/gradle-9.8.1/bin/gradle" --no-daemon -Dorg.gradle.jvmargs=-Xmx2g :app:assembleRelease
+      - name: Sign and verify test APK
+        run: |
+          tools="$ANDROID_HOME/build-tools/36.0.0"
+          mkdir dist
+          apk=dist/KodiakSpoof-Compat.apk
+          keytool -genkeypair -noprompt -storetype PKCS12 -keystore "$RUNNER_TEMP/compat.p12" \
+            -storepass test-only -keypass test-only -alias compatibility-test -keyalg RSA -keysize 2048 \
+            -validity 365 -dname 'CN=PixelSpoof Compatibility Test'
+          "$tools/apksigner" sign --ks "$RUNNER_TEMP/compat.p12" --ks-pass pass:test-only \
+            --out "$apk" app/build/outputs/apk/release/app-release-unsigned.apk
+          "$tools/apksigner" verify --verbose --print-certs "$apk" | tee dist/signature.txt
+          badging=$("$tools/aapt" dump badging "$apk")
+          grep -F "package: name='org.klab.pixelspoof.compat'" <<< "$badging"
+          if grep -q '^application-debuggable' <<< "$badging"; then exit 1; fi
+          permissions=$("$tools/aapt" dump permissions "$apk")
+          printf '%s\n' "$permissions"
+          if grep -q '^uses-permission' <<< "$permissions"; then exit 1; fi
+          unzip -p "$apk" assets/xposed_init | grep -Fx org.klab.pixelspoof.MainHook
+          (cd dist && sha256sum KodiakSpoof-Compat.apk > SHA256SUMS)
+          git rev-parse HEAD > dist/commit.txt
+          cat dist/SHA256SUMS
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: PixelSpoof-compat
+          path: dist/
+          if-no-files-found: error

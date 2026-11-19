@@ -35,11 +35,6 @@ class MainHook : IXposedHookLoadPackage {
         XposedHelpers.setStaticObjectField(Build::class.java, "SUPPORTED_ABIS", arrayOf("arm64-v8a"))
         XposedHelpers.setStaticObjectField(Build::class.java, "SUPPORTED_64_BIT_ABIS", arrayOf("arm64-v8a"))
 
-        XposedHelpers.setStaticObjectField(Build.VERSION::class.java, "RELEASE", Values.RELEASE)
-        XposedHelpers.setStaticIntField(Build.VERSION::class.java, "SDK_INT", Values.SDK_INT)
-        XposedHelpers.setStaticObjectField(Build.VERSION::class.java, "SECURITY_PATCH", Values.SECURITY_PATCH)
-        XposedHelpers.setStaticObjectField(Build.VERSION::class.java, "INCREMENTAL", Values.INCREMENTAL)
-
         XposedHelpers.findAndHookMethod(Build::class.java, "getRadioVersion", object : XC_MethodHook() {
             override fun beforeHookedMethod(param: MethodHookParam) {
                 param.result = Values.BASEBAND
@@ -105,13 +100,8 @@ class MainHook : IXposedHookLoadPackage {
                     key == "ro.build.description" -> Values.DESCRIPTION
                     key.startsWith("ro.com.google.clientidbase") -> Values.CLIENT_ID
                     key == "ro.opa.eligible_device" -> "true"
-                    key.endsWith(".build.version.release") || key == "ro.build.version.release_or_codename" -> Values.RELEASE
-                    key.endsWith(".build.version.sdk") -> Values.SDK_INT.toString()
-                    key.endsWith(".build.version.security_patch") -> Values.SECURITY_PATCH
-                    key.endsWith(".build.version.incremental") -> Values.INCREMENTAL
                     key == "ro.product.first_api_level" -> Values.FIRST_API_LEVEL
                     key == "ro.build.characteristics" -> "nosdcard"
-                    key.endsWith(".build.version.sdk_full") -> Values.SDK_FULL
                     key.endsWith(".build.uuid") -> Values.BUILD_UUID
                     key.endsWith(".build.date") -> Values.BUILD_DATE
                     key.endsWith(".build.date.utc") -> Values.TIME_SEC

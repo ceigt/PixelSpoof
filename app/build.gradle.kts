@@ -7,7 +7,7 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "org.klab.pixelspoof"
+        applicationId = "org.klab.pixelspoof.compat"
         minSdk = 29
         targetSdk = 37
         versionCode = project.property("versionCode").toString().toInt()

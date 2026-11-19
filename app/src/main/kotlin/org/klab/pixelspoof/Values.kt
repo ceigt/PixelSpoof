@@ -22,11 +22,6 @@ object Values {
     const val USER = "android-build"
     const val HOST = "r-36404f8caf3535e4-bbbk"
 
-    const val RELEASE = "17"
-    const val SDK_INT = 37
-    const val SDK_FULL = "37.0"
-    const val SECURITY_PATCH = "2026-10-05"
-    const val INCREMENTAL = "16262255"
     const val FIRST_API_LEVEL = "37"
 
     const val BUILD_DATE = "Fri Sep  4 03:00:23 UTC 2026"
